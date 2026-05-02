@@ -1,0 +1,9 @@
+.env
+__pycache__/
+*.pyc
+.scrapy/
+data/*.json
+data/*.csv
+venv/
+data/
+.idea/

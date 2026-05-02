@@ -1,0 +1,8 @@
+scrapy
+pymongo
+spacy
+streamlit
+pandas
+plotly
+python-dotenv
+requests
