@@ -7,3 +7,5 @@ data/*.csv
 venv/
 data/
 .idea/
+
+dashboard/.streamlit/sectrets.toml
