@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 import io
 from supabase import create_client
 
@@ -75,7 +76,8 @@ def base_layout(title="", height=420, extra=None):
 def get_client():
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
-    return create_client(url, key)
+    supa = create_client(url, key)
+    return supa
 
 @st.cache_data(ttl=300)
 def load_data():
