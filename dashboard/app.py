@@ -1,9 +1,8 @@
 import streamlit as st
-from pymongo import MongoClient
 import pandas as pd
 import plotly.graph_objects as go
-import certifi
 import io
+from supabase import create_client
 
 st.set_page_config(page_title="SkillRadar", page_icon="📡", layout="wide")
 
@@ -16,8 +15,7 @@ html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
   background: linear-gradient(135deg, #1A1F2E 0%, #16213E 100%);
   border: 1px solid #2A3040; border-radius: 16px;
   padding: 24px 28px; margin: 8px 0;
-  transition: transform 0.2s ease, border-color 0.2s ease;
-}
+  transition: transform 0.2s ease, border-color 0.2s ease; }
 .metric-card:hover { transform: translateY(-4px); border-color: #00D4AA; }
 .metric-label { font-size: 11px; font-weight: 600; color: #8B9AB1;
   text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
@@ -63,11 +61,9 @@ COLORS = ["#00D4AA","#6C63FF","#00B894","#A29BFE","#0984E3","#74B9FF","#E17055",
 
 def base_layout(title="", height=420, extra=None):
     layout = dict(
-        paper_bgcolor=PAPER, plot_bgcolor=PAPER,
-        font=FONT,
+        paper_bgcolor=PAPER, plot_bgcolor=PAPER, font=FONT,
         title=dict(text=title, font=dict(color="#FAFAFA", size=15)),
-        height=height,
-        margin=dict(l=10, r=20, t=44, b=10),
+        height=height, margin=dict(l=10, r=20, t=44, b=10),
         hoverlabel=dict(bgcolor="#1A1F2E", bordercolor="#2A3040",
                         font=dict(color="#FAFAFA", size=13))
     )
@@ -77,28 +73,22 @@ def base_layout(title="", height=420, extra=None):
 
 @st.cache_resource
 def get_client():
-    # use Atlas only if secret exists (i.e. deployed on Streamlit Cloud)
-    # use local MongoDB when running on your machine
-    try:
-        uri = st.secrets.get("MONGO_URI", None)
-        if uri:
-            return MongoClient(uri, tls=True, tlsAllowInvalidCertificates=True)
-        else:
-            return MongoClient("mongodb://localhost:27017")
-    except Exception:
-        return MongoClient("mongodb://localhost:27017")
+    url = st.secrets["SUPABASE_URL"]
+    key = st.secrets["SUPABASE_KEY"]
+    return create_client(url, key)
 
 @st.cache_data(ttl=300)
 def load_data():
-    db     = get_client()["skillradar"]
-    skills = pd.DataFrame(list(db["skills"].find({}, {"_id": 0})))
-    jobs   = pd.DataFrame(list(db["jobs"].find({}, {
-        "_id": 0, "title": 1, "company": 1,
-        "role": 1, "location": 1, "extracted_skills": 1
-    })))
+    supa = get_client()
+    skills_resp = supa.table("skills").select("*").order("count", desc=True).execute()
+    jobs_resp   = supa.table("jobs").select("id,title,company,role,location,extracted_skills").execute()
+    skills = pd.DataFrame(skills_resp.data)
+    jobs   = pd.DataFrame(jobs_resp.data)
     return skills, jobs
 
-skills_df, jobs_df = load_data()
+with st.spinner("Loading market data..."):
+    skills_df, jobs_df = load_data()
+
 all_roles  = sorted(jobs_df["role"].dropna().unique().tolist()) if "role" in jobs_df.columns else []
 all_skills = sorted(skills_df["skill"].str.title().tolist()) if len(skills_df) else []
 
@@ -106,41 +96,29 @@ all_skills = sorted(skills_df["skill"].str.title().tolist()) if len(skills_df) e
 with st.sidebar:
     st.markdown('<div class="logo-text">📡 SkillRadar</div>', unsafe_allow_html=True)
     st.markdown('<div class="logo-sub">Live Indian job market intelligence</div>', unsafe_allow_html=True)
-
     st.markdown("### 🎯 Filter")
     selected_role = st.selectbox("Job Role", ["All Roles"] + all_roles)
-
     st.markdown("### 🧠 Your Skills")
-    user_skills = st.multiselect(
-        "Select your current skills",
-        options=all_skills,
-        placeholder="e.g. Python, SQL..."
-    )
-
+    user_skills = st.multiselect("Select your current skills", options=all_skills,
+                                  placeholder="e.g. Python, SQL...")
     st.markdown("### 🔍 Skill Search")
     skill_search = st.text_input("Search a skill", placeholder="e.g. pandas")
-    st.markdown(
-    '<div style="font-size:11px;color:#556070;margin-top:4px">'
-    'Shows how many scraped jobs require this skill</div>',
-    unsafe_allow_html=True
-    ) 
+    st.markdown('<div style="font-size:11px;color:#556070;margin-top:4px">Shows how many scraped jobs require this skill</div>', unsafe_allow_html=True)
     st.markdown("---")
     st.markdown("### 📥 Export")
     export_btn = st.button("Download PDF Report")
-
     st.markdown("---")
     st.markdown('<div style="font-size:11px;color:#556070">Source: Adzuna API · Indian market<br>Refreshes every 5 min</div>', unsafe_allow_html=True)
 
 # ── FILTER ─────────────────────────────────────────────────────────────────
 filtered_jobs = jobs_df if selected_role == "All Roles" else jobs_df[jobs_df["role"] == selected_role]
 
-# recompute skill counts for filtered role
 if selected_role != "All Roles" and "extracted_skills" in filtered_jobs.columns:
     from collections import Counter
     all_extracted = []
-    for skills_list in filtered_jobs["extracted_skills"].dropna():
-        if isinstance(skills_list, list):
-            all_extracted.extend(skills_list)
+    for s in filtered_jobs["extracted_skills"].dropna():
+        if isinstance(s, list):
+            all_extracted.extend(s)
     if all_extracted:
         counts = Counter(all_extracted)
         total  = len(filtered_jobs)
@@ -158,20 +136,19 @@ st.markdown(
     f'<div class="logo-text" style="font-size:30px">📡 SkillRadar</div>'
     f'<div class="logo-sub" style="font-size:13px;margin-bottom:20px">'
     f'Showing: <b style="color:#00D4AA">{selected_role}</b> · {len(filtered_jobs)} jobs analysed</div>',
-    unsafe_allow_html=True
-)
+    unsafe_allow_html=True)
 
 # ── METRICS ────────────────────────────────────────────────────────────────
 c1, c2, c3, c4 = st.columns(4)
 top_skill = role_skills_df.iloc[0]["skill"].title() if len(role_skills_df) else "—"
-top_pct   = role_skills_df.iloc[0]["percentage"]   if len(role_skills_df) else 0
+top_pct   = role_skills_df.iloc[0]["percentage"]    if len(role_skills_df) else 0
 cities    = filtered_jobs["location"].dropna().nunique() if "location" in filtered_jobs.columns else 0
 
 for col, label, value, sub in [
-    (c1, "Jobs Scraped",   len(filtered_jobs),       f"across {len(all_roles)} roles"),
-    (c2, "Unique Skills",  len(role_skills_df),       "detected in descriptions"),
-    (c3, "Top Skill",      top_skill,                 f"in {top_pct}% of jobs"),
-    (c4, "Cities Hiring",  cities,                    "unique locations"),
+    (c1, "Jobs Scraped",  len(filtered_jobs),  f"across {len(all_roles)} roles"),
+    (c2, "Unique Skills", len(role_skills_df), "detected in descriptions"),
+    (c3, "Top Skill",     top_skill,            f"in {top_pct}% of jobs"),
+    (c4, "Cities Hiring", cities,               "unique locations"),
 ]:
     with col:
         st.markdown(f"""
@@ -185,7 +162,7 @@ for col, label, value, sub in [
 if skill_search:
     match = role_skills_df[role_skills_df["skill"].str.contains(skill_search.lower(), na=False)]
     if not match.empty:
-        r = match.iloc[0]
+        r     = match.iloc[0]
         level = ("🔥 High demand." if r["percentage"] > 20
                  else "📈 Moderate demand." if r["percentage"] > 10
                  else "💡 Niche — lower competition.")
@@ -213,7 +190,7 @@ with col_a:
         marker=dict(color=top15["count"],
                     colorscale=[[0,"#1A3040"],[0.5,"#00897B"],[1,"#00D4AA"]],
                     showscale=False),
-        hovertemplate="<b>%{y}</b><br>%{x} jobs requiring this skill<extra></extra>",
+        hovertemplate="<b>%{y}</b><br>%{x} jobs require this skill<extra></extra>",
         text=top15["percentage"].apply(lambda x: f"{x}%"),
         textposition="outside",
         textfont=dict(color="#8B9AB1", size=11)
@@ -228,13 +205,11 @@ with col_a:
 with col_b:
     top8 = role_skills_df.head(8).copy()
     top8["skill"] = top8["skill"].str.title()
-    fig2 = go.Figure(go.Pie(
-        labels=top8["skill"], values=top8["percentage"],
-        hole=0.55,
+    fig2  = go.Figure(go.Pie(
+        labels=top8["skill"], values=top8["percentage"], hole=0.55,
         marker=dict(colors=COLORS, line=dict(color="#0E1117", width=2)),
         hovertemplate="<b>%{label}</b><br>%{value}% of jobs<extra></extra>",
-        textinfo="label+percent",
-        textfont=dict(size=11, color="#C0CBDA"),
+        textinfo="label+percent", textfont=dict(size=11, color="#C0CBDA"),
         pull=[0.05 if i == 0 else 0 for i in range(len(top8))]
     ))
     fig2.update_layout(**base_layout("Skill Share", height=480, extra=dict(
@@ -255,8 +230,7 @@ with col_c:
     fig3 = go.Figure(go.Bar(
         x=rc["role"], y=rc["count"],
         marker=dict(color=rc["count"],
-                    colorscale=[[0,"#1A3040"],[1,PURPLE]],
-                    showscale=False),
+                    colorscale=[[0,"#1A3040"],[1,PURPLE]], showscale=False),
         hovertemplate="<b>%{x}</b><br>%{y} openings<extra></extra>",
     ))
     fig3.update_layout(**base_layout("Jobs by Role", height=360, extra=dict(
@@ -295,19 +269,18 @@ if not user_skills:
       </div>
     </div>""", unsafe_allow_html=True)
 else:
-    top20_skills  = set(role_skills_df.head(20)["skill"].str.lower().tolist())
-    user_set      = set([s.lower() for s in user_skills])
-    have          = top20_skills & user_set
-    missing       = top20_skills - user_set
+    top20_skills = set(role_skills_df.head(20)["skill"].str.lower().tolist())
+    user_set     = set([s.lower() for s in user_skills])
+    have         = top20_skills & user_set
+    missing      = top20_skills - user_set
 
-    missing_data  = (role_skills_df[role_skills_df["skill"].str.lower().isin(missing)]
-                     .sort_values("count", ascending=False).head(8))
-    have_data     = (role_skills_df[role_skills_df["skill"].str.lower().isin(have)]
-                     .sort_values("count", ascending=False))
+    missing_data = (role_skills_df[role_skills_df["skill"].str.lower().isin(missing)]
+                    .sort_values("count", ascending=False).head(8))
+    have_data    = (role_skills_df[role_skills_df["skill"].str.lower().isin(have)]
+                    .sort_values("count", ascending=False))
 
     coverage = round(len(have) / max(len(top20_skills), 1) * 100)
 
-    # readiness gauge
     fig_gauge = go.Figure(go.Indicator(
         mode="gauge+number",
         value=coverage,
@@ -318,24 +291,21 @@ else:
             bar=dict(color=TEAL, thickness=0.25),
             bgcolor="#1A1F2E",
             steps=[
-                dict(range=[0, 30],  color="#1A1F2E"),
-                dict(range=[30, 60], color="#162030"),
-                dict(range=[60, 100],color="#162535"),
+                dict(range=[0,  30],  color="#1A1F2E"),
+                dict(range=[30, 60],  color="#162030"),
+                dict(range=[60, 100], color="#162535"),
             ],
             threshold=dict(line=dict(color=TEAL, width=3), value=coverage)
         ),
         title={"text": "Role Readiness Score",
                "font": {"color": "#8B9AB1", "size": 13}}
     ))
-    fig_gauge.update_layout(**base_layout(height=260, extra=dict(
-        margin=dict(l=30, r=30, t=30, b=10)
-    )))
+    fig_gauge.update_layout(**base_layout(height=260,
+                            extra=dict(margin=dict(l=30, r=30, t=30, b=10))))
 
     g1, g2, g3 = st.columns([1, 1, 1])
-
     with g1:
         st.plotly_chart(fig_gauge, use_container_width=True)
-
     with g2:
         st.markdown("**✅ Skills you have**")
         if have_data.empty:
@@ -343,20 +313,15 @@ else:
         for _, row in have_data.iterrows():
             st.markdown(
                 f'<div class="have-item">{row["skill"].title()}'
-                f'<span style="color:#00D4AA;float:right;font-weight:600">'
-                f'{row["percentage"]}%</span></div>',
-                unsafe_allow_html=True
-            )
-
+                f'<span style="color:#00D4AA;float:right;font-weight:600">{row["percentage"]}%</span></div>',
+                unsafe_allow_html=True)
     with g3:
         st.markdown("**❌ High-demand skills missing**")
         for _, row in missing_data.iterrows():
             st.markdown(
                 f'<div class="gap-item">{row["skill"].title()}'
-                f'<span style="color:#556070;float:right">'
-                f'{row["count"]} jobs</span></div>',
-                unsafe_allow_html=True
-            )
+                f'<span style="color:#556070;float:right">{row["count"]} jobs</span></div>',
+                unsafe_allow_html=True)
 
     label = ("Strong — go deep on what you have." if coverage >= 60
              else "Good start — prioritise the missing skills." if coverage >= 30
@@ -387,14 +352,14 @@ if question and len(question) > 5:
             res    = requests.post("http://localhost:11434/api/generate",
                                    json={"model":"llama3","prompt":context,"stream":False},
                                    timeout=30)
-            answer = res.json().get("response","")
+            answer = res.json().get("response", "")
             st.markdown(f'<div class="insight-box"><div class="insight-text">{answer}</div></div>',
                         unsafe_allow_html=True)
         except Exception:
             st.markdown("""
             <div class="insight-box">
               <div class="insight-text">
-                <b style="color:#00D4AA">AI answers need Ollama running.</b><br>
+                <b style="color:#00D4AA">AI answers need Ollama running locally.</b><br>
                 Open a new terminal and run:
                 <code style="background:#2A3040;padding:2px 8px;border-radius:4px">ollama run llama3</code>
                 then ask again.
@@ -411,49 +376,43 @@ if export_btn:
         from reportlab.lib.units import mm
         from datetime import datetime
 
-        buf = io.BytesIO()
-        doc = SimpleDocTemplate(buf, pagesize=A4,
-                                leftMargin=18*mm, rightMargin=18*mm,
-                                topMargin=18*mm, bottomMargin=18*mm)
-        styles = getSampleStyleSheet()
-        story  = []
-
-        title_s = ParagraphStyle("t", fontSize=22, fontName="Helvetica-Bold",
-                                  textColor=colors.HexColor("#00D4AA"), spaceAfter=4)
-        sub_s   = ParagraphStyle("s", fontSize=10, textColor=colors.HexColor("#8B9AB1"),
-                                  spaceAfter=16)
-        h2_s    = ParagraphStyle("h2", fontSize=13, fontName="Helvetica-Bold",
-                                  textColor=colors.HexColor("#1E1E2E"), spaceBefore=14, spaceAfter=6)
-        body_s  = ParagraphStyle("b", fontSize=9, textColor=colors.HexColor("#4B5563"),
-                                  leading=14, spaceAfter=4)
-
-        story.append(Paragraph("📡 SkillRadar Report", title_s))
+        buf  = io.BytesIO()
+        doc  = SimpleDocTemplate(buf, pagesize=A4,
+                                 leftMargin=18*mm, rightMargin=18*mm,
+                                 topMargin=18*mm, bottomMargin=18*mm)
+        styl = getSampleStyleSheet()
+        t_s  = ParagraphStyle("t", fontSize=22, fontName="Helvetica-Bold",
+                               textColor=colors.HexColor("#00D4AA"), spaceAfter=4)
+        s_s  = ParagraphStyle("s", fontSize=10, textColor=colors.HexColor("#8B9AB1"),
+                               spaceAfter=16)
+        h2_s = ParagraphStyle("h2", fontSize=13, fontName="Helvetica-Bold",
+                               textColor=colors.HexColor("#1E1E2E"), spaceBefore=14, spaceAfter=6)
+        b_s  = ParagraphStyle("b", fontSize=9, textColor=colors.HexColor("#4B5563"),
+                               leading=14, spaceAfter=4)
+        story = []
+        story.append(Paragraph("📡 SkillRadar Report", t_s))
         story.append(Paragraph(
             f"Role: {selected_role} · {len(filtered_jobs)} jobs · "
-            f"Generated {datetime.now().strftime('%d %b %Y %H:%M')}", sub_s))
+            f"Generated {datetime.now().strftime('%d %b %Y %H:%M')}", s_s))
         story.append(Spacer(1, 8))
-
         story.append(Paragraph("Top 20 In-Demand Skills", h2_s))
-        table_data = [["Rank", "Skill", "Jobs", "% Demand"]]
-        for i, row in role_skills_df.head(20).iterrows():
-            table_data.append([
-                str(len(table_data)),
-                row["skill"].title(),
-                str(row["count"]),
-                f"{row['percentage']}%"
-            ])
-        t = Table(table_data, colWidths=[15*mm, 80*mm, 30*mm, 30*mm])
+
+        tdata = [["Rank", "Skill", "Jobs", "% Demand"]]
+        for i, (_, row) in enumerate(role_skills_df.head(20).iterrows(), 1):
+            tdata.append([str(i), row["skill"].title(), str(row["count"]), f"{row['percentage']}%"])
+
+        t = Table(tdata, colWidths=[15*mm, 80*mm, 30*mm, 30*mm])
         t.setStyle(TableStyle([
-            ("BACKGROUND",   (0,0), (-1,0),  colors.HexColor("#1E1E2E")),
-            ("TEXTCOLOR",    (0,0), (-1,0),  colors.white),
-            ("FONTNAME",     (0,0), (-1,0),  "Helvetica-Bold"),
-            ("FONTSIZE",     (0,0), (-1,-1), 8.5),
-            ("ROWBACKGROUNDS",(0,1),(-1,-1), [colors.white, colors.HexColor("#F9FAFB")]),
-            ("GRID",         (0,0), (-1,-1), 0.4, colors.HexColor("#E5E7EB")),
-            ("TOPPADDING",   (0,0), (-1,-1), 5),
-            ("BOTTOMPADDING",(0,0), (-1,-1), 5),
-            ("LEFTPADDING",  (0,0), (-1,-1), 8),
-            ("TEXTCOLOR",    (0,1), (-1,-1), colors.HexColor("#374151")),
+            ("BACKGROUND",    (0,0), (-1,0),  colors.HexColor("#1E1E2E")),
+            ("TEXTCOLOR",     (0,0), (-1,0),  colors.white),
+            ("FONTNAME",      (0,0), (-1,0),  "Helvetica-Bold"),
+            ("FONTSIZE",      (0,0), (-1,-1), 8.5),
+            ("ROWBACKGROUNDS",(0,1), (-1,-1), [colors.white, colors.HexColor("#F9FAFB")]),
+            ("GRID",          (0,0), (-1,-1), 0.4, colors.HexColor("#E5E7EB")),
+            ("TOPPADDING",    (0,0), (-1,-1), 5),
+            ("BOTTOMPADDING", (0,0), (-1,-1), 5),
+            ("LEFTPADDING",   (0,0), (-1,-1), 8),
+            ("TEXTCOLOR",     (0,1), (-1,-1), colors.HexColor("#374151")),
         ]))
         story.append(t)
 
@@ -461,13 +420,10 @@ if export_btn:
             story.append(Spacer(1, 12))
             story.append(Paragraph("Skill Gap Analysis", h2_s))
             story.append(Paragraph(
-                f"Role readiness: {coverage}% of top 20 demanded skills matched.", body_s))
-            if missing_data is not None and not missing_data.empty:
-                story.append(Paragraph("Skills to prioritise:", body_s))
-                for _, row in missing_data.iterrows():
-                    story.append(Paragraph(
-                        f"• {row['skill'].title()} — {row['count']} jobs ({row['percentage']}%)",
-                        body_s))
+                f"Role readiness: {coverage}% of top 20 demanded skills matched.", b_s))
+            for _, row in missing_data.iterrows():
+                story.append(Paragraph(
+                    f"• {row['skill'].title()} — {row['count']} jobs ({row['percentage']}%)", b_s))
 
         doc.build(story)
         buf.seek(0)

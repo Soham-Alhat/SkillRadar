@@ -9,3 +9,5 @@ data/
 .idea/
 
 dashboard/.streamlit/sectrets.toml
+
+dashboard/.streamlit/secrets.toml
