@@ -25,7 +25,10 @@ class JobSpider(scrapy.Spider):
             "python developer",
             "data scientist",
             "machine learning",
-            "business analyst"
+            "business analyst",
+            "data engineer",
+            "sql developer",
+            "power bi developer"
         ]
         for role in roles:
             url = (
@@ -46,7 +49,7 @@ class JobSpider(scrapy.Spider):
                 "title"      : job.get("title", ""),
                 "company"    : job.get("company", {}).get("display_name", ""),
                 "location"   : job.get("location", {}).get("display_name", ""),
-                "description": job.get("description", "")[:500],
+                "description": job.get("description", ""),
                 "role"       : response.meta["role"],
                 "source"     : "adzuna",
                 "scraped_at" : datetime.utcnow()

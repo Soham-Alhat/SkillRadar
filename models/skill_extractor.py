@@ -44,11 +44,13 @@ def process_all_jobs():
     skills = db["skills"]
 
     all_skills = []
+    role_skill_map = {} # This will track skills per each role soham lavdya keep in mind dont forget
     updated = 0
 
     for job in jobs.find():
         description = job.get("description", "")
         title = job.get("title", "")
+        role = job.get("role", "unknown")
         combined = f"{title} {description}"
 
         extracted = extract_skills(combined)
@@ -60,11 +62,19 @@ def process_all_jobs():
         )
 
         all_skills.extend(extracted)
+
+        # Track skills per role
+        if role not in role_skill_map:
+            role_skill_map[role] = []
+        role_skill_map[role].extend(extracted)
+
         updated += 1
 
     print(f"Processed {updated} jobs")
 
-    # count skill frequency across all jobs
+    # Calculate total jobs for percentage calculation
+    total = updated
+    # Count skill frequency across all jobs
     skill_counts = Counter(all_skills)
 
     # write to skills collection
@@ -74,13 +84,17 @@ def process_all_jobs():
             "skill": skill,
             "count": count,
             "percentage": round(count / updated * 100, 1),
-            "updated_at": datetime.now(timezone.utc)
+            "updated_at": datetime.now(timezone.utc),
+            "by_role" : {
+                role : role_skill_map[role].count(skill)
+                for role in role_skill_map
+                if role_skill_map[role].count(skill) > 0
+            }
         })
 
     print(f"Top 10 skills in market right now:")
     for skill, count in skill_counts.most_common(10):
-        pct = round(count / updated * 100, 1)
-        print(f"  {skill:<25} {count} jobs  ({pct}%)")
+        print(f"  {skill:<25} {count} jobs  ({round(count / updated * 100, 1)}%)")
 
 
 if __name__ == "__main__":
