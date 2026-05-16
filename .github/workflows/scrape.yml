@@ -8,8 +8,4 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        run: git clone https://github.com/${{ github.repository }} .
-
-      - name: Print Hello
-        run: echo "Hello Soham"
+      - run: echo "Workflow works"
