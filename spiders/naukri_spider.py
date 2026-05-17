@@ -19,9 +19,8 @@ def get_supabase():
             pass
     return create_client(url, key)
 
-
-APP_ID  = os.environ.get("ADZUNA_APP_ID",  "your_local_id_here")
-APP_KEY = os.environ.get("ADZUNA_APP_KEY", "your_local_key_here")
+APP_ID  = os.environ.get("ADZUNA_APP_ID",  "3b68a26f")
+APP_KEY = os.environ.get("ADZUNA_APP_KEY", "2b7cba3c7fd4725ab94d6df94c9e0966")
 
 
 class JobSpider(scrapy.Spider):
@@ -57,7 +56,7 @@ class JobSpider(scrapy.Spider):
                 )
                 yield scrapy.Request(url, callback=self.parse, meta={"role": role})
 
-    def parse(self, response):
+    def parse(self, response):          # ← 4 spaces indent, inside the class
         try:
             data = json.loads(response.text)
         except Exception:
@@ -66,11 +65,20 @@ class JobSpider(scrapy.Spider):
         jobs = data.get("results", [])
         self.logger.info(f"Got {len(jobs)} jobs for: {response.meta['role']}")
 
+        seen  = set()
         batch = []
         for job in jobs:
+            title   = job.get("title", "").strip()
+            company = job.get("company", {}).get("display_name", "").strip()
+            key     = (title.lower(), company.lower())
+
+            if key in seen or not title:
+                continue
+            seen.add(key)
+
             batch.append({
-                "title"      : job.get("title", ""),
-                "company"    : job.get("company", {}).get("display_name", ""),
+                "title"      : title,
+                "company"    : company,
                 "location"   : job.get("location", {}).get("display_name", ""),
                 "description": job.get("description", ""),
                 "role"       : response.meta["role"],
@@ -79,8 +87,10 @@ class JobSpider(scrapy.Spider):
             })
 
         if batch:
-            # upsert — update if exists, insert if not
-            self.supa.table("jobs").upsert(
-                batch,
-                on_conflict="title,company"
-            ).execute()
+            try:
+                self.supa.table("jobs").upsert(
+                    batch,
+                    on_conflict="title,company"
+                ).execute()
+            except Exception as e:
+                self.logger.error(f"Supabase insert failed: {e}")
