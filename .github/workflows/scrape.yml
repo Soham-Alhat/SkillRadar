@@ -1,28 +1,37 @@
 name: SkillRadar Data Refresh
 
 on:
-  workflow_dispatch:
   schedule:
-    - cron: '0 2 * * 1' # Every Monday at 2 AM
+    - cron: '0 2 * * 1'
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v3
 
-      - name: Setup Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install scrapy pymongo supabase requests spacy
+          python -m spacy download en_core_web_sm
 
-      - name: Test Python
-        run: |
-          python --version
-          echo "Workflow working"
+      - name: Run spider
+        env:
+          ADZUNA_APP_ID: ${{ secrets.ADZUNA_APP_ID }}
+          ADZUNA_APP_KEY: ${{ secrets.ADZUNA_APP_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python -m scrapy runspider spiders/naukri_spider.py -L INFO
+
+      - name: Run skill extractor
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: python models/skill_extractor.py

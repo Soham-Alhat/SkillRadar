@@ -19,8 +19,10 @@ DEFAULT_REQUEST_HEADERS = {
 
 # Pipeline to save to MongoDB
 ITEM_PIPELINES = {
-    "pipelines.MongoDBPipeline": 300,
+    "pipelines.SupabasePipeline": 300,
 }
 
-MONGO_URI = "mongodb://localhost:27017"
-MONGO_DB  = "skillradar"
+# do we have to remove this lines?  
+
+# MONGO_URI = "mongodb://localhost:27017"
+# MONGO_DB  = "skillradar"
