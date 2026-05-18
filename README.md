@@ -2,82 +2,129 @@
 
 # 📡 SkillRadar
 
-### *Know exactly what skills the market wants. Before everyone else does.*
+### *Real-time Indian job market intelligence. Automated. No manual work.*
 
-[![Live Dashboard](https://img.shields.io/badge/Live%20Dashboard-SkillRadar-00D4AA?style=for-the-badge&logo=streamlit&logoColor=white)](https://your-streamlit-url.streamlit.app)
-[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-[![Supabase](https://img.shields.io/badge/Supabase-Database-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white)](https://supabase.com)
-[![Scrapy](https://img.shields.io/badge/Scrapy-Spider-60A839?style=for-the-badge&logo=scrapy&logoColor=white)](https://scrapy.org)
-[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Automated-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Live Dashboard](https://img.shields.io/badge/🚀%20Open%20Live%20Dashboard-Click%20Here-00D4AA?style=for-the-badge)](https://skillradar-eebjrxfsriafgeed5kksge.streamlit.app/)
 
 <br/>
 
-> Built this because I was tired of guessing which skills to learn for placements.  
-> So I built a system that scrapes real job listings, extracts what companies actually ask for,  
-> and shows exactly where my skill gaps are. Live. Automated. No manual work.
+[![Python](https://img.shields.io/badge/Python-3.13-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=flat-square&logo=supabase&logoColor=white)](https://supabase.com)
+[![Scrapy](https://img.shields.io/badge/Scrapy-Spider-60A839?style=flat-square)](https://scrapy.org)
+[![GitHub Actions](https://img.shields.io/badge/GitHub%20Actions-Auto%20Weekly-2088FF?style=flat-square&logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?style=flat-square&logo=streamlit&logoColor=white)](https://streamlit.io)
+[![spaCy](https://img.shields.io/badge/spaCy-NLP-09A3D5?style=flat-square)](https://spacy.io)
 
-<br/>
+</div>
 
 ![SkillRadar Dashboard Preview](https://github.com/user-attachments/assets/f34f7705-108c-4666-b91e-9836992f80d8)
 
 ![SkillRadar Analytics Preview](https://github.com/user-attachments/assets/95725901-4b4f-466e-9998-1615a46b99bb)
 
 </div>
+---
+
+## 🎯 What is this?
+
+I built SkillRadar because I was tired of guessing which skills to learn before placements.
+
+Most students ask "what should I learn next?" and get random YouTube roadmap answers. SkillRadar answers that question with **actual live data** — scraped from real Indian job listings every week, processed with NLP, and shown as interactive charts.
+
+**The whole system runs automatically. Every Monday morning, GitHub's servers (not my laptop) scrape fresh job data, extract skills, and update the dashboard. I don't touch anything.**
 
 ---
 
-## 🤔 What problem does this solve?
+## 🔥 What you can actually do with it
 
-Every student preparing for placements faces the same question: **"What should I learn next?"**
+<br/>
 
-Most people guess. Or follow random YouTube roadmaps. Or copy what their friend is doing.
+**🔍 Search any skill and see its real market demand**
 
-SkillRadar answers that question with actual data — scraped from real Indian job listings, processed with NLP, and shown as clear visual charts. You select your target role, add your current skills, and instantly see a **readiness score** plus exactly which high-demand skills you're missing.
+Type "pandas" → instantly see how many jobs require it, what percentage of listings mention it, and whether it's high demand or niche.
 
-No fluff. Just data.
+<br/>
+
+**🎯 Add your skills and get a readiness score**
+
+Select the skills you have from the sidebar. The system compares them against the top 20 demanded skills for your target role and gives you:
+- A gauge chart showing your readiness percentage
+- Exactly which high-demand skills you're missing (sorted by demand)
+- A plain-English verdict on where you stand
+
+<br/>
+
+**📊 Filter the entire dashboard by job role**
+
+Switch between Data Analyst, Python Developer, Data Scientist, ML Engineer, Business Analyst, Data Engineer, SQL Developer, Power BI Developer. Every chart, every metric, every city — all updates to show only that role's data.
+
+<br/>
+
+**🏙️ See which cities are actually hiring**
+
+Not just "Bangalore and Mumbai." The top 10 cities hiring for your specific role, ranked by number of openings.
+
+<br/>
+
+**💬 Ask questions about the data**
+
+Type a question like "Why is machine learning more demanded than SQL here?" and get a data-specific answer (requires Ollama running locally).
+
+<br/>
+
+**📥 Download a PDF market report**
+
+One click. Gets you a formatted report with the top 20 skills, demand percentages, and your personal gap analysis. Named after the role you selected.
 
 ---
 
-## ✨ What it does
+## ⚙️ How the automation actually works
 
-| Feature | Description |
-|---|---|
-| 🕷️ **Auto-scraping** | Pulls 400+ job listings every week via Adzuna API across 8 roles |
-| 🧠 **NLP skill extraction** | Uses spaCy to extract skill keywords from job descriptions |
-| 📊 **Live dashboard** | Streamlit app shows skill demand charts, city breakdown, role comparison |
-| 🎯 **Skill gap analyzer** | Add your skills → see your readiness score + what you're missing |
-| 📥 **PDF export** | Download a personalized market report for any role |
-| 🔄 **Fully automated** | GitHub Actions runs the pipeline every Monday. Zero manual work. |
-
----
-
-## 🏗️ How it's built
+This is the part that makes it different from a regular dashboard.
 
 ```
-Adzuna API  ──→  Scrapy Spider  ──→  Supabase (PostgreSQL)
-                                          │
-                                    spaCy NLP extractor
-                                          │
-                              Streamlit Dashboard (public URL)
-                                          │
-                              GitHub Actions (runs weekly)
+Every Monday at 7:30 AM IST
+         │
+         ▼
+GitHub Actions wakes up on GitHub's servers
+(your laptop doesn't need to be on)
+         │
+         ▼
+Scrapy spider hits Adzuna API
+→ fetches 50 jobs × 3 pages × 8 roles = up to 1200 job listings
+→ deduplicates by title + company
+→ writes to Supabase in batches
+         │
+         ▼
+spaCy NLP extractor reads every job description
+→ matches 50+ skill keywords with word boundary detection
+→ calculates frequency and percentage per skill
+→ updates the skills table in Supabase
+         │
+         ▼
+Streamlit dashboard reads fresh data from Supabase
+→ anyone opening the dashboard sees this week's data
+         │
+         ▼
+Done. No human involved.
 ```
 
-**No local server needed. No MongoDB. No Docker for production.**  
-Everything runs on free cloud infrastructure.
+The workflow file is at `.github/workflows/scrape.yml`.
+API keys are stored as GitHub Secrets — never in the code.
 
 ---
 
-## 🛠️ Tech stack
+## 🛠️ Tech stack and why each tool was chosen
 
-| Layer | Technology | Why |
+| Tool | Role | Why this specifically |
 |---|---|---|
-| Scraping | Scrapy + Adzuna API | Fast async scraping, structured job data |
-| NLP | spaCy `en_core_web_sm` | Keyword extraction from job descriptions |
-| Database | Supabase (PostgreSQL) | Free, REST API, no SSL headaches |
-| Dashboard | Streamlit + Plotly | Python-native, deploys in one click |
-| Scheduler | GitHub Actions (cron) | Free, cloud, zero infrastructure |
-| Charts | Plotly Graph Objects | Interactive, hoverable, clean dark theme |
+| **Scrapy** | Web scraping | Async, fast, pipeline architecture — not just `requests` |
+| **Adzuna API** | Job data source | Free tier, structured JSON, India-specific search |
+| **spaCy** | NLP / skill extraction | Word boundary matching — "r" won't match inside "developer" |
+| **Supabase** | Database | PostgreSQL with REST API, free tier, no SSL issues unlike Atlas |
+| **GitHub Actions** | Scheduler | Runs on GitHub's servers, free, cron syntax, secrets management |
+| **Streamlit** | Dashboard | Python-native, deploys in one click, Plotly integration |
+| **Plotly** | Charts | Interactive hover, dark theme, donut + bar + gauge charts |
+| **ReportLab** | PDF export | Programmatic PDF generation — tables, styles, layout |
 
 ---
 
@@ -85,120 +132,106 @@ Everything runs on free cloud infrastructure.
 
 ```
 SkillRadar/
+├── .github/
+│   └── workflows/
+│       └── scrape.yml              ← GitHub Actions (runs every Monday)
 ├── spiders/
-│   └── naukri_spider.py        # Scrapy spider — hits Adzuna API, writes to Supabase
+│   └── naukri_spider.py            ← Scrapy spider, writes to Supabase
 ├── models/
-│   └── skill_extractor.py      # NLP pipeline — reads jobs, writes skill frequencies
+│   └── skill_extractor.py          ← NLP pipeline, reads + writes Supabase
 ├── dashboard/
-│   └── app.py                  # Streamlit dashboard — all charts and UI
-├── pipelines.py                # Scrapy pipeline — Supabase batch upsert
-├── settings.py                 # Scrapy settings
-├── .github/workflows/
-│   └── scrape.yml              # GitHub Actions — runs every Monday 7:30 AM IST
-└── requirements.txt
+│   └── app.py                      ← Full Streamlit dashboard
+├── pipelines.py                    ← Scrapy → Supabase batch pipeline
+├── settings.py                     ← Scrapy config
+├── requirements.txt
+└── .gitignore                      ← secrets.toml is in here, never committed
 ```
 
 ---
 
-## 🚀 Run it locally
+## 🚀 Run locally
 
-**1. Clone the repo**
 ```bash
+# 1. clone
 git clone https://github.com/Soham-Alhat/SkillRadar.git
 cd SkillRadar
-```
 
-**2. Install dependencies**
-```bash
+# 2. install
 pip install -r requirements.txt
 python -m spacy download en_core_web_sm
-```
 
-**3. Set up secrets**
-
-Create `dashboard/.streamlit/secrets.toml`:
-```toml
-SUPABASE_URL = "your-supabase-project-url"
+# 3. create secrets file (never commit this)
+mkdir -p dashboard/.streamlit
+cat > dashboard/.streamlit/secrets.toml << EOF
+SUPABASE_URL = "your-supabase-url"
 SUPABASE_KEY = "your-supabase-anon-key"
-```
+EOF
 
-**4. Scrape jobs**
-```bash
+# 4. scrape
 python -m scrapy runspider spiders/naukri_spider.py -L INFO
-```
 
-**5. Extract skills**
-```bash
+# 5. extract skills
 python models/skill_extractor.py
-```
 
-**6. Run the dashboard**
-```bash
+# 6. run dashboard
 streamlit run dashboard/app.py
 ```
 
 ---
 
-## ⚙️ Automated pipeline (GitHub Actions)
+## 🔐 Secrets — where they live
 
-Every Monday at 7:30 AM IST, GitHub's servers automatically:
+| Secret | Local | Cloud |
+|---|---|---|
+| `SUPABASE_URL` | `dashboard/.streamlit/secrets.toml` | Streamlit Cloud app secrets |
+| `SUPABASE_KEY` | `dashboard/.streamlit/secrets.toml` | Streamlit Cloud app secrets |
+| `ADZUNA_APP_ID` | Local env or secrets file | GitHub → Settings → Secrets → Actions |
+| `ADZUNA_APP_KEY` | Local env or secrets file | GitHub → Settings → Secrets → Actions |
 
-1. Run the Scrapy spider → fetch fresh job listings
-2. Run the skill extractor → update skill frequencies
-3. Write everything to Supabase → dashboard shows new data
-
-No laptop required. No cron job to set up locally.
-
-The workflow file is at `.github/workflows/scrape.yml`.  
-Secrets are stored in GitHub → Settings → Secrets → Actions.
+**No secret ever touches the codebase. `.gitignore` blocks `secrets.toml` from being committed.**
 
 ---
 
 ## 📊 Roles tracked
 
 ```
-Data Analyst          Python Developer      Data Scientist
-Machine Learning Eng  Business Analyst      Data Engineer
-SQL Developer         Power BI Developer
+Data Analyst          │  Python Developer     │  Data Scientist
+Machine Learning Eng  │  Business Analyst     │  Data Engineer
+SQL Developer         │  Power BI Developer
 ```
 
 ---
 
-## 🔑 Environment variables
+## 🧱 Problems I actually ran into and fixed
 
-| Variable | Where to get it |
-|---|---|
-| `SUPABASE_URL` | Supabase → Project Settings → API |
-| `SUPABASE_KEY` | Supabase → Project Settings → API (anon key) |
-| `ADZUNA_APP_ID` | developer.adzuna.com → Create App |
-| `ADZUNA_APP_KEY` | developer.adzuna.com → Create App |
+**Supabase upsert crashing with `ON CONFLICT DO UPDATE command cannot affect row a second time`**
+→ Adzuna returns duplicate jobs across pages. Fixed by deduplicating within each batch using a `seen` set before upserting.
 
----
+**spaCy matching the letter "r" inside every word — 100% false positive rate**
+→ Switched from `str.contains()` to `re.search()` with `\b` word boundary anchors.
 
-## 💡 What I learned building this
+**Python 3.13 + Windows + MongoDB Atlas SSL handshake failure — completely unsolvable**
+→ Ditched Atlas entirely. Switched to Supabase which uses plain HTTPS REST calls. No driver-level SSL issues at all.
 
-- Scrapy's async pipeline and how to swap backends (MongoDB → Supabase) mid-project
-- Why PostgreSQL's `ON CONFLICT` upsert fails on duplicate keys in the same batch — and how to deduplicate before inserting
-- How GitHub Actions works as a free cloud scheduler — basically a cron job that runs Python scripts on their servers
-- SSL handshake failures between Python 3.13 + Windows + older pymongo versions (brutal)
-- Why Supabase is significantly easier to integrate than Atlas for REST-based pipelines
+**GitHub Actions not finding spaCy model after pip install**
+→ Added `python -m spacy download en_core_web_sm` as an explicit separate step in the workflow YAML.
 
 ---
 
-## 🔮 What's next
+## 🔮 Planned next
 
-- [ ] Salary range data per role (Adzuna returns this, not displaying it yet)
-- [ ] Weekly trend — did Python demand go up or down this week vs last week?
-- [ ] Role comparison view — Data Analyst vs Data Scientist side by side
-- [ ] Export as shareable link — `/report?role=data-analyst`
+- [ ] Salary range by role — Adzuna returns this, just not displayed yet
+- [ ] Week-on-week skill trend — did Python demand rise or fall vs last week?
+- [ ] Role comparison view — two roles side by side
+- [ ] Shareable URL per search — `/report?role=data-analyst`
 
 ---
 
 <div align="center">
 
-Built by **Soham Alhat** · MCA Student · Placement prep 2025
+Built by **Soham Alhat** · MCA · Placement prep 2025
 
-*If this helped you figure out what to learn next, that's the whole point.*
+*Started because I didn't know what to learn. Ended up building the tool that answers that.*
 
 [![GitHub](https://img.shields.io/badge/GitHub-Soham--Alhat-181717?style=flat-square&logo=github)](https://github.com/Soham-Alhat)
 
