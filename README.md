@@ -18,8 +18,9 @@
 
 <br/>
 
-![SkillRadar Dashboard Preview](<img width="1917" height="700" alt="Screenshot 2026-05-18 222505" src="https://github.com/user-attachments/assets/f34f7705-108c-4666-b91e-9836992f80d8" />)
-![SkillRadar Analytics Preview](<img width="1919" height="769" alt="Screenshot 2026-05-18 222523" src="https://github.com/user-attachments/assets/95725901-4b4f-466e-9998-1615a46b99bb" />)
+![SkillRadar Dashboard Preview](https://github.com/user-attachments/assets/f34f7705-108c-4666-b91e-9836992f80d8)
+
+![SkillRadar Analytics Preview](https://github.com/user-attachments/assets/95725901-4b4f-466e-9998-1615a46b99bb)
 
 </div>
 
